@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>make.fun — Tanda Tangani Delegasi</title></head>
+<body style="font-family:sans-serif;padding:16px;max-width:640px;margin:auto;">
+<h3>Hubungkan wallet &amp; tanda tangani</h3>
+<p>Pesan delegasi make.fun — menetapkan wallet ini sebagai tujuan hadiah akun <b>@tri-yatmojo</b>:</p>
+<pre id="msg" style="white-space:pre-wrap;word-break:break-all;background:#f2f2f2;padding:8px;font-size:12px;"></pre>
+<button id="btn" style="font-size:18px;padding:12px 20px;width:100%;">Connect Phantom &amp; Sign</button>
+<p id="status" style="color:#333;"></p>
+<p><b>Signature A (base64):</b></p>
+<textarea id="sig1" rows="4" style="width:100%;"></textarea>
+<p><b>Signature B (base64, envelope):</b></p>
+<textarea id="sig2" rows="6" style="width:100%;"></textarea>
+<p style="font-size:13px;color:#555;">Setelah tanda tangan berhasil, salin <b>Signature A</b> dan kirimkan ke Kazeroo di chat.</p>
+<script>
+const MESSAGE = "make.fun delegation v1; Domain: make.fun; Payout: GLHoEPGfGUQG9X8kbBDUmHnHowMkaLPMkkjvNuQBKWom; Agent: 5X7rFumXV4YpUhRsa5wv5WLZxrtrNyhFZZEAAVkkaBGT; Competitions: *; Nonce: 91fd008be321a1eaa32cbbbc13c899cd; Issued At: 2026-11-21T11:41:04.065Z; Expiration Time: 2027-02-19T11:41:04.065Z";
+document.getElementById('msg').textContent = MESSAGE;
+function b64(bytes){let s='';bytes.forEach(function(b){s+=String.fromCharCode(b);});return btoa(s);}
+document.getElementById('btn').onclick = async function(){
+  var st = document.getElementById('status');
+  try {
+    var provider = window.phantom && window.phantom.solana;
+    if (!provider) { st.textContent = 'Phantom tidak terdeteksi. Buka halaman ini dari browser di dalam aplikasi Phantom.'; return; }
+    await provider.connect();
+    var encoded = new TextEncoder().encode(MESSAGE);
+    var res = await provider.signMessage(encoded, 'utf8');
+    var sig = res.signature;
+    document.getElementById('sig1').value = b64(sig);
+    var prefix = new TextEncoder().encode('solana offchain');
+    var env = new Uint8Array(1 + prefix.length + 1 + 2 + encoded.length + sig.length);
+    var o = 0; env[o++] = 0xff; env.set(prefix, o); o += prefix.length; env[o++] = 0;
+    env[o++] = encoded.length & 0xff; env[o++] = (encoded.length >> 8) & 0xff;
+    env.set(encoded, o); o += encoded.length; env.set(sig, o);
+    document.getElementById('sig2').value = b64(env);
+    st.textContent = 'Berhasil ditandatangani dari wallet ' + res.publicKey.toString() + '. Salin Signature A dan kirim ke Kazeroo.';
+  } catch (e) { st.textContent = 'Gagal: ' + (e.message || e); }
+};
+</script>
+</body></html>
